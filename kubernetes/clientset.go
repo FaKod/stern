@@ -15,10 +15,12 @@
 package kubernetes
 
 import (
+	"os"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	// auth providers
@@ -46,8 +48,20 @@ func NewClientConfig(configPath string, contextName string) clientcmd.ClientConf
 
 // NewClientSet returns a new Kubernetes client for a client config
 func NewClientSet(clientConfig clientcmd.ClientConfig) (*kubernetes.Clientset, error) {
-	c, err := clientConfig.ClientConfig()
+	if os.Getenv("INCLUSTER_DEFAULT_NS") != "" {
+		inClusterConfig, err := rest.InClusterConfig()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create InCluster config")
+		}
 
+		clientset, err := kubernetes.NewForConfig(inClusterConfig)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create InCluster client")
+		}
+		return clientset, nil
+	}
+
+	c, err := clientConfig.ClientConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get client config")
 	}

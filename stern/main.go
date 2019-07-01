@@ -16,6 +16,7 @@ package stern
 
 import (
 	"context"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/wercker/stern/kubernetes"
@@ -38,7 +39,12 @@ func Run(ctx context.Context, config *Config) error {
 		if namespace == "" {
 			namespace, _, err = clientConfig.Namespace()
 			if err != nil {
-				return errors.Wrap(err, "unable to get default namespace")
+				defNs := os.Getenv("INCLUSTER_DEFAULT_NS")
+				if defNs != "" {
+					namespace = defNs
+				} else {
+					return errors.Wrap(err, "unable to get default namespace")
+				}
 			}
 		}
 	}
